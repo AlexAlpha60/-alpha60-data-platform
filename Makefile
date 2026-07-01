@@ -1,15 +1,13 @@
 .PHONY: install test lint format
 
 install:
-	python3 -m venv .venv
-	. .venv/bin/activate && pip install --upgrade pip
-	. .venv/bin/activate && pip install -r requirements.txt -r requirements-dev.txt
+	uv sync --dev
 
 test:
-	. .venv/bin/activate && pytest
+	uv run pytest
 
 lint:
-	. .venv/bin/activate && ruff check src tests
+	uv run ruff check src tests
 
 format:
-	. .venv/bin/activate && ruff format src tests
+	uv run ruff format src tests

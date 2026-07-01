@@ -2,7 +2,22 @@
 name = "alpha60-data-platform"
 version = "0.1.0"
 description = "ALPHA60 operational data platform"
+readme = "README.md"
 requires-python = ">=3.13,<3.14"
+dependencies = [
+    "google-cloud-bigquery",
+    "google-cloud-secret-manager",
+    "pydantic",
+    "pydantic-settings",
+    "requests",
+]
+
+[dependency-groups]
+dev = [
+    "mypy",
+    "pytest",
+    "ruff",
+]
 
 [tool.ruff]
 line-length = 100
