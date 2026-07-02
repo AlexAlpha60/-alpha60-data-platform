@@ -7,19 +7,15 @@ configuring Python logging directly.
 from __future__ import annotations
 
 import logging
-import os
 
-_DEFAULT_LOG_LEVEL = "INFO"
+from alpha60.config import settings
+
 _LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"
 
 
 def configure_logging(log_level: str | None = None) -> None:
     """Configure application logging once."""
-    resolved_level = log_level
-    if resolved_level is None:
-        resolved_level = os.getenv("ALPHA60_LOG_LEVEL") or _DEFAULT_LOG_LEVEL
-
-    resolved_level = resolved_level.upper()
+    resolved_level = (log_level or settings.log_level).upper()
     numeric_level = logging.getLevelName(resolved_level)
 
     if not isinstance(numeric_level, int):
