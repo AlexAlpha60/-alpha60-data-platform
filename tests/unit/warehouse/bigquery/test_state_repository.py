@@ -6,6 +6,9 @@ from collections.abc import Iterable, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
+from google.cloud import bigquery
+
+from alpha60.state import IncrementalState
 from alpha60.warehouse.bigquery.state_repository import BigQueryStateRepository
 
 
@@ -99,3 +102,38 @@ def test_bigquery_state_repository_rejects_invalid_cursor_value() -> None:
         assert "cursor_value must be a datetime or None" in str(exc)
     else:
         raise AssertionError("Expected TypeError")
+
+
+def test_bigquery_state_repository_save_state_merges_state() -> None:
+    """save_state persists incremental state using a BigQuery MERGE."""
+    cursor_value = datetime(2026, 7, 3, 12, 30, tzinfo=UTC)
+    client = FakeBigQueryClient(query_rows=[])
+    repository = BigQueryStateRepository(
+        table_id="alpha60-dev.warehouse.platform_state",
+        client=client,
+    )
+
+    repository.save_state(
+        IncrementalState(
+            job_name="shopify-products",
+            cursor_field="updated_at",
+            cursor_value=cursor_value,
+        )
+    )
+
+    assert client.sql is not None
+    assert "MERGE `alpha60-dev.warehouse.platform_state`" in client.sql
+    assert client.parameters is not None
+    assert len(client.parameters) == 3
+
+    parameter_names = [
+        parameter.name
+        for parameter in client.parameters
+        if isinstance(parameter, bigquery.ScalarQueryParameter)
+    ]
+
+    assert parameter_names == [
+        "job_name",
+        "cursor_field",
+        "cursor_value",
+    ]

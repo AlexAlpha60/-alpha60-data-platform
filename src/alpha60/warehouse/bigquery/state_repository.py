@@ -56,4 +56,52 @@ class BigQueryStateRepository:
 
     def save_state(self, state: IncrementalState) -> None:
         """Persist incremental state for a job."""
-        raise NotImplementedError
+        sql = f"""
+        MERGE `{self.table_id}` AS target
+        USING (
+            SELECT
+                @job_name AS job_name,
+                @cursor_field AS cursor_field,
+                @cursor_value AS cursor_value
+        ) AS source
+        ON target.job_name = source.job_name
+        WHEN MATCHED THEN
+          UPDATE SET
+            cursor_field = source.cursor_field,
+            cursor_value = source.cursor_value,
+            updated_at = CURRENT_TIMESTAMP()
+        WHEN NOT MATCHED THEN
+          INSERT (
+            job_name,
+            cursor_field,
+            cursor_value,
+            updated_at
+          )
+          VALUES (
+            source.job_name,
+            source.cursor_field,
+            source.cursor_value,
+            CURRENT_TIMESTAMP()
+          )
+        """
+
+        self.client.query(
+            sql,
+            parameters=[
+                bigquery.ScalarQueryParameter(
+                    "job_name",
+                    "STRING",
+                    state.job_name,
+                ),
+                bigquery.ScalarQueryParameter(
+                    "cursor_field",
+                    "STRING",
+                    state.cursor_field,
+                ),
+                bigquery.ScalarQueryParameter(
+                    "cursor_value",
+                    "TIMESTAMP",
+                    state.cursor_value,
+                ),
+            ],
+        )
