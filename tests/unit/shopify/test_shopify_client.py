@@ -74,7 +74,7 @@ def test_shopify_client_gets_products() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert (
             str(request.url)
-            == "https://alpha60-test.myshopify.com/admin/api/2025-01/products.json"
+            == "https://alpha60-test.myshopify.com/admin/api/2025-01/products.json?limit=250"
         )
         assert request.headers["X-Shopify-Access-Token"] == "test-token"
 
@@ -101,5 +101,53 @@ def test_shopify_client_gets_products() -> None:
     products = client.get_products()
 
     assert products == [{"id": 123, "title": "Test Product"}]
+
+    http_client.close()
+
+
+def test_shopify_client_gets_paginated_products() -> None:
+    request_urls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        request_urls.append(str(request.url))
+
+        if len(request_urls) == 1:
+            return httpx.Response(
+                status_code=200,
+                json={"products": [{"id": 1, "title": "Product 1"}]},
+                headers={
+                    "Link": (
+                        '<https://alpha60-test.myshopify.com/admin/api/2025-01/'
+                        'products.json?limit=250&page_info=next-page>; rel="next"'
+                    )
+                },
+            )
+
+        return httpx.Response(
+            status_code=200,
+            json={"products": [{"id": 2, "title": "Product 2"}]},
+        )
+
+    http_client = HTTPClient(transport=httpx.MockTransport(handler))
+
+    client = ShopifyClient(
+        shop_domain="alpha60-test.myshopify.com",
+        access_token="test-token",
+        http_client=http_client,
+    )
+
+    products = client.get_products()
+
+    assert products == [
+        {"id": 1, "title": "Product 1"},
+        {"id": 2, "title": "Product 2"},
+    ]
+    assert request_urls == [
+        "https://alpha60-test.myshopify.com/admin/api/2025-01/products.json?limit=250",
+        (
+            "https://alpha60-test.myshopify.com/admin/api/2025-01/products.json"
+            "?limit=250&page_info=next-page"
+        ),
+    ]
 
     http_client.close()
