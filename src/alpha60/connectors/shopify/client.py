@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 import httpx
 
 from alpha60.core.http.client import HTTPClient
@@ -55,10 +57,16 @@ class ShopifyClient:
         response = self.get("/shop.json")
         return response.status_code == 200
 
-    def get_products(self) -> list[dict[str, object]]:
-        """Fetch all products from Shopify."""
-        return self.products.get_products()
+    def get_products(
+        self,
+        updated_since: datetime | None = None,
+    ) -> list[dict[str, object]]:
+        """Fetch products from Shopify."""
+        return self.products.get_products(updated_since=updated_since)
 
-    def get_product_records(self) -> list[Record]:
+    def get_product_records(
+        self,
+        updated_since: datetime | None = None,
+    ) -> list[Record]:
         """Fetch Shopify products as platform records."""
-        return self.products.get_product_records()
+        return self.products.get_product_records(updated_since=updated_since)

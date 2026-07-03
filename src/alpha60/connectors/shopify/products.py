@@ -31,10 +31,19 @@ class ProductsResource:
         """Initialize the resource."""
         self._client = client
 
-    def get_products(self) -> list[dict[str, object]]:
-        """Fetch all products from Shopify."""
+    def get_products(
+        self,
+        updated_since: datetime | None = None,
+    ) -> list[dict[str, object]]:
+        """Fetch products from Shopify."""
         records: list[dict[str, object]] = []
-        params: dict[str, str] | None = {"limit": "250"}
+
+        params: dict[str, str] = {
+            "limit": "250",
+        }
+
+        if updated_since is not None:
+            params["updated_at_min"] = updated_since.isoformat()
 
         while True:
             response = self._client.get("/products.json", params=params)
@@ -56,7 +65,10 @@ class ProductsResource:
 
         return records
 
-    def get_product_records(self) -> list[Record]:
+    def get_product_records(
+        self,
+        updated_since: datetime | None = None,
+    ) -> list[Record]:
         """Fetch Shopify products as platform records."""
         extracted_at = datetime.now(UTC)
 
@@ -68,6 +80,6 @@ class ProductsResource:
                 extracted_at=extracted_at,
                 payload=product,
             )
-            for product in self.get_products()
+            for product in self.get_products(updated_since=updated_since)
             if "id" in product
         ]
