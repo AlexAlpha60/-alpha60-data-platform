@@ -34,7 +34,7 @@ def test_cli_runs_shopify_products_ingestion(capsys) -> None:
 
 def test_cli_runs_configuration_health_check(capsys) -> None:
     """The CLI runs the configuration health check."""
-    health_result = HealthCheckResult(
+    result = HealthCheckResult(
         name="config",
         status=HealthStatus.PASS,
         message="Configuration is valid.",
@@ -46,7 +46,7 @@ def test_cli_runs_configuration_health_check(capsys) -> None:
     ):
         settings = object()
         load_settings.return_value = settings
-        check_configuration.return_value = health_result
+        check_configuration.return_value = result
 
         exit_code = main(["test", "config"])
 
@@ -59,7 +59,7 @@ def test_cli_runs_configuration_health_check(capsys) -> None:
 
 def test_cli_runs_shopify_health_check(capsys) -> None:
     """The CLI runs the Shopify health check."""
-    health_result = HealthCheckResult(
+    result = HealthCheckResult(
         name="shopify",
         status=HealthStatus.PASS,
         message="Shopify connection succeeded.",
@@ -71,7 +71,7 @@ def test_cli_runs_shopify_health_check(capsys) -> None:
     ):
         settings = object()
         load_settings.return_value = settings
-        check_shopify.return_value = health_result
+        check_shopify.return_value = result
 
         exit_code = main(["test", "shopify"])
 
@@ -80,3 +80,28 @@ def test_cli_runs_shopify_health_check(capsys) -> None:
 
     captured = capsys.readouterr()
     assert "shopify: pass - Shopify connection succeeded." in captured.out
+
+
+def test_cli_runs_bigquery_health_check(capsys) -> None:
+    """The CLI runs the BigQuery health check."""
+    result = HealthCheckResult(
+        name="bigquery",
+        status=HealthStatus.PASS,
+        message="BigQuery connection succeeded.",
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch("alpha60.cli.check_bigquery") as check_bigquery,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        check_bigquery.return_value = result
+
+        exit_code = main(["test", "bigquery"])
+
+    assert exit_code == 0
+    check_bigquery.assert_called_once_with(settings=settings)
+
+    captured = capsys.readouterr()
+    assert "bigquery: pass - BigQuery connection succeeded." in captured.out

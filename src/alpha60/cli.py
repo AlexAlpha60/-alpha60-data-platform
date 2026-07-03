@@ -7,6 +7,7 @@ from alpha60.config import load_settings
 from alpha60.jobs.shopify_products_runner import run_shopify_products_ingestion
 from alpha60.operations.health import (
     HealthStatus,
+    check_bigquery,
     check_configuration,
     check_shopify,
 )
@@ -57,6 +58,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate Shopify connectivity",
     )
 
+    test_subparsers.add_parser(
+        "bigquery",
+        help="Validate BigQuery connectivity",
+    )
+
     return parser
 
 
@@ -92,6 +98,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "test" and args.health_check == "shopify":
         settings = load_settings()
         health_result = check_shopify(settings=settings)
+
+        print(
+            f"{health_result.name}: "
+            f"{health_result.status.value} - "
+            f"{health_result.message}"
+        )
+
+        return 0 if health_result.status == HealthStatus.PASS else 1
+
+    if args.command == "test" and args.health_check == "bigquery":
+        settings = load_settings()
+        health_result = check_bigquery(settings=settings)
 
         print(
             f"{health_result.name}: "
