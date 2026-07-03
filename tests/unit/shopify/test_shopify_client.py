@@ -80,14 +80,7 @@ def test_shopify_client_gets_products() -> None:
 
         return httpx.Response(
             status_code=200,
-            json={
-                "products": [
-                    {
-                        "id": 123,
-                        "title": "Test Product",
-                    }
-                ]
-            },
+            json={"products": [{"id": 123, "title": "Test Product"}]},
         )
 
     http_client = HTTPClient(transport=httpx.MockTransport(handler))
@@ -149,5 +142,31 @@ def test_shopify_client_gets_paginated_products() -> None:
             "?limit=250&page_info=next-page"
         ),
     ]
+
+    http_client.close()
+
+
+def test_shopify_client_gets_product_records() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            status_code=200,
+            json={"products": [{"id": 123, "title": "Test Product"}]},
+        )
+
+    http_client = HTTPClient(transport=httpx.MockTransport(handler))
+
+    client = ShopifyClient(
+        shop_domain="alpha60-test.myshopify.com",
+        access_token="test-token",
+        http_client=http_client,
+    )
+
+    records = client.get_product_records()
+
+    assert len(records) == 1
+    assert records[0].source == "shopify"
+    assert records[0].entity == "product"
+    assert records[0].record_id == "123"
+    assert records[0].payload == {"id": 123, "title": "Test Product"}
 
     http_client.close()
