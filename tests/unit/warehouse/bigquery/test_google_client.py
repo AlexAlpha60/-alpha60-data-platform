@@ -35,3 +35,58 @@ def test_google_bigquery_client_creates_sdk_client_from_config() -> None:
         project="alpha60-dev",
         location="australia-southeast1",
     )
+
+
+def test_google_bigquery_client_loads_rows_with_load_job() -> None:
+    """Rows are loaded into BigQuery using a load job."""
+    sdk_client = Mock(spec=bigquery.Client)
+    load_job = Mock()
+    load_job.errors = None
+    load_job.output_rows = 2
+    sdk_client.load_table_from_json.return_value = load_job
+
+    client = GoogleBigQueryClient(
+        config=BigQueryConfig(project_id="alpha60-dev", dataset_id="raw"),
+        client=sdk_client,
+    )
+
+    rows_loaded = client.load_rows(
+        table_id="alpha60-dev.raw.shopify_products",
+        rows=[
+            {"record_id": "1"},
+            {"record_id": "2"},
+        ],
+    )
+
+    assert rows_loaded == 2
+    load_job.result.assert_called_once()
+
+    sdk_client.load_table_from_json.assert_called_once()
+    _, kwargs = sdk_client.load_table_from_json.call_args
+
+    assert kwargs["destination"] == "alpha60-dev.raw.shopify_products"
+    assert kwargs["job_config"].write_disposition == bigquery.WriteDisposition.WRITE_APPEND
+
+
+def test_google_bigquery_client_raises_when_load_job_has_errors() -> None:
+    """A failed BigQuery load job raises a runtime error."""
+    sdk_client = Mock(spec=bigquery.Client)
+    load_job = Mock()
+    load_job.errors = [{"message": "invalid row"}]
+    load_job.output_rows = 0
+    sdk_client.load_table_from_json.return_value = load_job
+
+    client = GoogleBigQueryClient(
+        config=BigQueryConfig(project_id="alpha60-dev", dataset_id="raw"),
+        client=sdk_client,
+    )
+
+    try:
+        client.load_rows(
+            table_id="alpha60-dev.raw.shopify_products",
+            rows=[{"record_id": "1"}],
+        )
+    except RuntimeError as exc:
+        assert "BigQuery load failed" in str(exc)
+    else:
+        raise AssertionError("Expected RuntimeError")

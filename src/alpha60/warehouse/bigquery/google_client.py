@@ -28,5 +28,20 @@ class GoogleBigQueryClient:
         table_id: str,
         rows: Iterable[dict[str, Any]],
     ) -> int:
-        """Load rows into BigQuery."""
-        raise NotImplementedError("Load jobs are not implemented yet.")
+        """Load rows into BigQuery using a load job."""
+        rows_to_load = list(rows)
+
+        job_config = bigquery.LoadJobConfig(
+            write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+        )
+        load_job = self._client.load_table_from_json(
+            rows_to_load,
+            destination=table_id,
+            job_config=job_config,
+        )
+        load_job.result()
+
+        if load_job.errors:
+            raise RuntimeError(f"BigQuery load failed: {load_job.errors}")
+
+        return int(load_job.output_rows or len(rows_to_load))
