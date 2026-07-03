@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from alpha60.config.settings import Settings
+from alpha60.connectors.shopify.client import ShopifyClient
 
 
 class HealthStatus(StrEnum):
@@ -49,4 +50,26 @@ def check_configuration(settings: Settings) -> HealthCheckResult:
         name="config",
         status=HealthStatus.PASS,
         message="Configuration is valid.",
+    )
+
+
+def check_shopify(settings: Settings) -> HealthCheckResult:
+    """Validate Shopify connectivity."""
+    client = ShopifyClient(
+        shop_domain=settings.shopify.shop_domain,
+        access_token=settings.shopify.access_token,
+        api_version=settings.shopify.api_version,
+    )
+
+    if client.test_connection():
+        return HealthCheckResult(
+            name="shopify",
+            status=HealthStatus.PASS,
+            message="Shopify connection succeeded.",
+        )
+
+    return HealthCheckResult(
+        name="shopify",
+        status=HealthStatus.FAIL,
+        message="Shopify connection failed.",
     )

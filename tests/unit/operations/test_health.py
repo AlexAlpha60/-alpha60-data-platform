@@ -1,5 +1,7 @@
 """Tests for operational health checks."""
 
+from unittest.mock import patch
+
 from alpha60.config.bigquery import BigQuerySettings
 from alpha60.config.settings import Settings
 from alpha60.config.shopify import ShopifySettings
@@ -7,7 +9,24 @@ from alpha60.operations.health import (
     HealthCheckResult,
     HealthStatus,
     check_configuration,
+    check_shopify,
 )
+
+
+def build_settings() -> Settings:
+    """Build test settings."""
+    return Settings(
+        environment="test",
+        log_level="INFO",
+        shopify=ShopifySettings(
+            shop_domain="test-store.myshopify.com",
+            access_token="test-token",
+        ),
+        bigquery=BigQuerySettings(
+            project_id="test-project",
+            dataset_id="test_dataset",
+        ),
+    )
 
 
 def test_health_check_result_stores_check_details() -> None:
@@ -25,20 +44,7 @@ def test_health_check_result_stores_check_details() -> None:
 
 def test_check_configuration_passes_when_required_settings_are_present() -> None:
     """Configuration health check passes when required settings are present."""
-    settings = Settings(
-        environment="test",
-        log_level="INFO",
-        shopify=ShopifySettings(
-            shop_domain="test-store.myshopify.com",
-            access_token="test-token",
-        ),
-        bigquery=BigQuerySettings(
-            project_id="test-project",
-            dataset_id="test_dataset",
-        ),
-    )
-
-    result = check_configuration(settings=settings)
+    result = check_configuration(settings=build_settings())
 
     assert result == HealthCheckResult(
         name="config",
@@ -72,4 +78,32 @@ def test_check_configuration_fails_when_required_settings_are_missing() -> None:
         "shopify.access_token, "
         "bigquery.project_id, "
         "bigquery.dataset_id"
+    )
+
+
+def test_check_shopify_passes_when_connection_succeeds() -> None:
+    """Shopify health check passes when the connection succeeds."""
+    with patch("alpha60.operations.health.ShopifyClient") as shopify_client:
+        shopify_client.return_value.test_connection.return_value = True
+
+        result = check_shopify(settings=build_settings())
+
+    assert result == HealthCheckResult(
+        name="shopify",
+        status=HealthStatus.PASS,
+        message="Shopify connection succeeded.",
+    )
+
+
+def test_check_shopify_fails_when_connection_fails() -> None:
+    """Shopify health check fails when the connection fails."""
+    with patch("alpha60.operations.health.ShopifyClient") as shopify_client:
+        shopify_client.return_value.test_connection.return_value = False
+
+        result = check_shopify(settings=build_settings())
+
+    assert result == HealthCheckResult(
+        name="shopify",
+        status=HealthStatus.FAIL,
+        message="Shopify connection failed.",
     )
