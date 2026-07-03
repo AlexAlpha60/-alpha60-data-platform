@@ -4,6 +4,7 @@ from collections.abc import Sequence
 import argparse
 
 from alpha60.config import load_settings
+from alpha60.core.logging import configure_logging, get_logger
 from alpha60.jobs.shopify_products_runner import run_shopify_products_ingestion
 from alpha60.operations.health import (
     HealthCheckResult,
@@ -13,6 +14,9 @@ from alpha60.operations.health import (
     check_shopify,
 )
 from alpha60.warehouse.types import WarehouseLoadStatus
+
+
+logger = get_logger(__name__)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -79,8 +83,17 @@ def print_health_result(result: HealthCheckResult) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the ALPHA60 command line interface."""
+    configure_logging()
+
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    logger.info(
+        "CLI command started",
+        extra={
+            "command": args.command,
+        },
+    )
 
     if args.command == "ingest" and args.ingestion_job == "shopify-products":
         settings = load_settings()
@@ -92,6 +105,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"with status {load_result.status.value}."
         )
 
+        logger.info(
+            "Shopify products ingestion completed",
+            extra={
+                "table_id": load_result.table_id,
+                "rows_loaded": load_result.rows_loaded,
+                "status": load_result.status.value,
+            },
+        )
+
         return 0 if load_result.status == WarehouseLoadStatus.SUCCESS else 1
 
     if args.command == "test" and args.health_check == "config":
@@ -99,6 +121,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         health_result = check_configuration(settings=settings)
 
         print_health_result(health_result)
+
+        logger.info(
+            "Configuration health check completed",
+            extra={
+                "status": health_result.status.value,
+                "health_message": health_result.message,
+            },
+        )
 
         return 0 if health_result.status == HealthStatus.PASS else 1
 
@@ -108,6 +138,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         print_health_result(health_result)
 
+        logger.info(
+            "Shopify health check completed",
+            extra={
+                "status": health_result.status.value,
+                "health_message": health_result.message,
+            },
+        )
+
         return 0 if health_result.status == HealthStatus.PASS else 1
 
     if args.command == "test" and args.health_check == "bigquery":
@@ -115,6 +153,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         health_result = check_bigquery(settings=settings)
 
         print_health_result(health_result)
+
+        logger.info(
+            "BigQuery health check completed",
+            extra={
+                "status": health_result.status.value,
+                "health_message": health_result.message,
+            },
+        )
 
         return 0 if health_result.status == HealthStatus.PASS else 1
 
@@ -129,7 +175,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         for health_result in health_results:
             print_health_result(health_result)
 
-        if all(result.status == HealthStatus.PASS for result in health_results):
+        all_passed = all(result.status == HealthStatus.PASS for result in health_results)
+
+        logger.info(
+            "All health checks completed",
+            extra={
+                "status": HealthStatus.PASS.value if all_passed else HealthStatus.FAIL.value,
+                "checks": [
+                    {
+                        "name": result.name,
+                        "status": result.status.value,
+                        "health_message": result.message,
+                    }
+                    for result in health_results
+                ],
+            },
+        )
+
+        if all_passed:
             return 0
 
         return 1
