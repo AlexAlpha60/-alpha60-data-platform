@@ -5,6 +5,10 @@ import argparse
 
 from alpha60.config import load_settings
 from alpha60.jobs.shopify_products_runner import run_shopify_products_ingestion
+from alpha60.operations.health import (
+    HealthStatus,
+    check_configuration,
+)
 from alpha60.warehouse.types import WarehouseLoadStatus
 
 
@@ -32,6 +36,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Load Shopify products into BigQuery",
     )
 
+    test_parser = subparsers.add_parser(
+        "test",
+        help="Run operational health checks",
+    )
+
+    test_subparsers = test_parser.add_subparsers(
+        dest="health_check",
+        required=True,
+    )
+
+    test_subparsers.add_parser(
+        "config",
+        help="Validate runtime configuration",
+    )
+
     return parser
 
 
@@ -42,18 +61,27 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "ingest" and args.ingestion_job == "shopify-products":
         settings = load_settings()
-        result = run_shopify_products_ingestion(settings=settings)
+        load_result = run_shopify_products_ingestion(settings=settings)
 
         print(
-            f"Loaded {result.rows_loaded} rows into "
-            f"{result.table_id} "
-            f"with status {result.status.value}."
+            f"Loaded {load_result.rows_loaded} rows into "
+            f"{load_result.table_id} "
+            f"with status {load_result.status.value}."
         )
 
-        if result.status == WarehouseLoadStatus.SUCCESS:
-            return 0
+        return 0 if load_result.status == WarehouseLoadStatus.SUCCESS else 1
 
-        return 1
+    if args.command == "test" and args.health_check == "config":
+        settings = load_settings()
+        health_result = check_configuration(settings=settings)
+
+        print(
+            f"{health_result.name}: "
+            f"{health_result.status.value} - "
+            f"{health_result.message}"
+        )
+
+        return 0 if health_result.status == HealthStatus.PASS else 1
 
     parser.error("Unsupported command")
     return 2
