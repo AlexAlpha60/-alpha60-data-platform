@@ -46,3 +46,14 @@ class ShopifyClient:
         """Verify Shopify credentials."""
         response = self.get("/shop.json")
         return response.status_code == 200
+
+    def get_products(self) -> list[dict[str, object]]:
+        """Fetch products from Shopify."""
+        response = self.get("/products.json")
+        data = response.json()
+        products = data.get("products", [])
+
+        if not isinstance(products, list):
+            return []
+
+        return products
