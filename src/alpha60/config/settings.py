@@ -33,7 +33,12 @@ def load_settings() -> Settings:
         shopify=ShopifySettings(
             shop_domain=os.getenv("ALPHA60_SHOPIFY_SHOP_DOMAIN", ""),
             access_token=os.getenv("ALPHA60_SHOPIFY_ACCESS_TOKEN", ""),
-            api_version=os.getenv("ALPHA60_SHOPIFY_API_VERSION", _DEFAULT_SHOPIFY_API_VERSION),
+            client_id=os.getenv("ALPHA60_SHOPIFY_CLIENT_ID", ""),
+            client_secret=os.getenv("ALPHA60_SHOPIFY_CLIENT_SECRET", ""),
+            api_version=os.getenv(
+                "ALPHA60_SHOPIFY_API_VERSION",
+                _DEFAULT_SHOPIFY_API_VERSION,
+            ),
         ),
         bigquery=BigQuerySettings(
             project_id=os.getenv("ALPHA60_BIGQUERY_PROJECT_ID", ""),

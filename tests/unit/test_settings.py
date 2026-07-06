@@ -16,6 +16,8 @@ def test_load_settings_uses_defaults(monkeypatch) -> None:
     monkeypatch.delenv("ALPHA60_LOG_LEVEL", raising=False)
     monkeypatch.delenv("ALPHA60_SHOPIFY_SHOP_DOMAIN", raising=False)
     monkeypatch.delenv("ALPHA60_SHOPIFY_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("ALPHA60_SHOPIFY_CLIENT_ID", raising=False)
+    monkeypatch.delenv("ALPHA60_SHOPIFY_CLIENT_SECRET", raising=False)
     monkeypatch.delenv("ALPHA60_SHOPIFY_API_VERSION", raising=False)
     monkeypatch.delenv("ALPHA60_BIGQUERY_PROJECT_ID", raising=False)
     monkeypatch.delenv("ALPHA60_BIGQUERY_DATASET_ID", raising=False)
@@ -29,6 +31,8 @@ def test_load_settings_uses_defaults(monkeypatch) -> None:
         shopify=ShopifySettings(
             shop_domain="",
             access_token="",
+            client_id="",
+            client_secret="",
             api_version="2025-01",
         ),
         bigquery=BigQuerySettings(
@@ -44,7 +48,9 @@ def test_load_settings_reads_environment(monkeypatch) -> None:
     monkeypatch.setenv("ALPHA60_ENV", "production")
     monkeypatch.setenv("ALPHA60_LOG_LEVEL", "DEBUG")
     monkeypatch.setenv("ALPHA60_SHOPIFY_SHOP_DOMAIN", "alpha60.myshopify.com")
-    monkeypatch.setenv("ALPHA60_SHOPIFY_ACCESS_TOKEN", "secret")
+    monkeypatch.setenv("ALPHA60_SHOPIFY_ACCESS_TOKEN", "legacy-token")
+    monkeypatch.setenv("ALPHA60_SHOPIFY_CLIENT_ID", "client-id")
+    monkeypatch.setenv("ALPHA60_SHOPIFY_CLIENT_SECRET", "client-secret")
     monkeypatch.setenv("ALPHA60_SHOPIFY_API_VERSION", "2025-04")
     monkeypatch.setenv("ALPHA60_BIGQUERY_PROJECT_ID", "alpha60-prod")
     monkeypatch.setenv("ALPHA60_BIGQUERY_DATASET_ID", "raw")
@@ -55,7 +61,9 @@ def test_load_settings_reads_environment(monkeypatch) -> None:
     assert settings.environment == "production"
     assert settings.log_level == "DEBUG"
     assert settings.shopify.shop_domain == "alpha60.myshopify.com"
-    assert settings.shopify.access_token == "secret"
+    assert settings.shopify.access_token == "legacy-token"
+    assert settings.shopify.client_id == "client-id"
+    assert settings.shopify.client_secret == "client-secret"
     assert settings.shopify.api_version == "2025-04"
     assert settings.bigquery.project_id == "alpha60-prod"
     assert settings.bigquery.dataset_id == "raw"
@@ -68,6 +76,8 @@ def test_module_level_settings_are_loaded(monkeypatch) -> None:
     monkeypatch.setenv("ALPHA60_LOG_LEVEL", "WARNING")
     monkeypatch.setenv("ALPHA60_SHOPIFY_SHOP_DOMAIN", "test.myshopify.com")
     monkeypatch.setenv("ALPHA60_SHOPIFY_ACCESS_TOKEN", "test-token")
+    monkeypatch.setenv("ALPHA60_SHOPIFY_CLIENT_ID", "test-client-id")
+    monkeypatch.setenv("ALPHA60_SHOPIFY_CLIENT_SECRET", "test-client-secret")
     monkeypatch.setenv("ALPHA60_BIGQUERY_PROJECT_ID", "alpha60-test")
     monkeypatch.setenv("ALPHA60_BIGQUERY_DATASET_ID", "raw_test")
 
@@ -77,5 +87,7 @@ def test_module_level_settings_are_loaded(monkeypatch) -> None:
     assert alpha60.config.settings.log_level == "WARNING"
     assert alpha60.config.settings.shopify.shop_domain == "test.myshopify.com"
     assert alpha60.config.settings.shopify.access_token == "test-token"
+    assert alpha60.config.settings.shopify.client_id == "test-client-id"
+    assert alpha60.config.settings.shopify.client_secret == "test-client-secret"
     assert alpha60.config.settings.bigquery.project_id == "alpha60-test"
     assert alpha60.config.settings.bigquery.dataset_id == "raw_test"
