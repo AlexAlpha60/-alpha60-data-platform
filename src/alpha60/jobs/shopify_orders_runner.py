@@ -17,7 +17,10 @@ _SHOPIFY_ORDERS_JOB_NAME = "shopify-orders"
 _SHOPIFY_ORDERS_CURSOR_FIELD = "updated_at"
 
 
-def run_shopify_orders_ingestion(settings: Settings) -> WarehouseLoadResult:
+def run_shopify_orders_ingestion(
+    settings: Settings,
+    max_pages: int | None = None,
+) -> WarehouseLoadResult:
     """Run the Shopify orders ingestion job using runtime settings."""
     authenticator = ShopifyAuthenticator(
         shop_domain=settings.shopify.shop_domain,
@@ -45,6 +48,7 @@ def run_shopify_orders_ingestion(settings: Settings) -> WarehouseLoadResult:
         shopify_client=shopify_client,
         warehouse_loader=bigquery_loader,
         updated_since=state.cursor_value if state is not None else None,
+        max_pages=max_pages,
     )
 
     if (

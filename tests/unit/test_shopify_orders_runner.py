@@ -91,6 +91,7 @@ def test_run_shopify_orders_ingestion_wires_dependencies() -> None:
         shopify_client=shopify_client,
         warehouse_loader=warehouse_loader,
         updated_since=None,
+        max_pages=None,
     )
 
 
@@ -143,6 +144,52 @@ def test_run_shopify_orders_ingestion_passes_existing_cursor() -> None:
         shopify_client=shopify_client,
         warehouse_loader=warehouse_loader,
         updated_since=previous_cursor,
+        max_pages=None,
+    )
+
+
+def test_run_shopify_orders_ingestion_passes_max_pages() -> None:
+    """The runner passes max_pages to the Shopify orders job."""
+    warehouse_result = WarehouseLoadResult(
+        table_id="shopify_orders",
+        status=WarehouseLoadStatus.SUCCESS,
+        rows_loaded=500,
+    )
+    expected_result = IngestionJobResult(
+        warehouse_result=warehouse_result,
+        records_processed=500,
+        latest_cursor=None,
+    )
+
+    with (
+        patch("alpha60.jobs.shopify_orders_runner.ShopifyAuthenticator") as auth_class,
+        patch("alpha60.jobs.shopify_orders_runner.ShopifyClient") as client_class,
+        patch("alpha60.jobs.shopify_orders_runner.create_bigquery_loader") as loader_factory,
+        patch(
+            "alpha60.jobs.shopify_orders_runner.create_bigquery_state_repository"
+        ) as state_repository_factory,
+        patch("alpha60.jobs.shopify_orders_runner.load_shopify_orders") as load_job,
+    ):
+        authenticator = Mock()
+        shopify_client = Mock()
+        warehouse_loader = Mock()
+        state_repository = Mock()
+        authenticator.get_access_token.return_value = "temporary-token"
+        auth_class.return_value = authenticator
+        client_class.return_value = shopify_client
+        loader_factory.return_value = warehouse_loader
+        state_repository_factory.return_value = state_repository
+        state_repository.get_state.return_value = None
+        load_job.return_value = expected_result
+
+        result = run_shopify_orders_ingestion(settings=_settings(), max_pages=2)
+
+    assert result == warehouse_result
+    load_job.assert_called_once_with(
+        shopify_client=shopify_client,
+        warehouse_loader=warehouse_loader,
+        updated_since=None,
+        max_pages=2,
     )
 
 

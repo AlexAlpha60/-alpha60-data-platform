@@ -44,9 +44,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Load Shopify products into BigQuery",
     )
 
-    ingest_subparsers.add_parser(
+    shopify_orders_parser = ingest_subparsers.add_parser(
         "shopify-orders",
         help="Load Shopify orders into BigQuery",
+    )
+    shopify_orders_parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="Maximum number of Shopify order pages to fetch.",
     )
 
     test_parser = subparsers.add_parser(
@@ -129,7 +135,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "ingest" and args.ingestion_job == "shopify-orders":
         settings = load_settings()
-        load_result = run_shopify_orders_ingestion(settings=settings)
+        load_result = run_shopify_orders_ingestion(
+            settings=settings,
+            max_pages=args.max_pages,
+        )
 
         _print_load_result(load_result)
 

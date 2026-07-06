@@ -17,6 +17,7 @@ class ShopifyOrdersClient(Protocol):
     def get_order_records(
         self,
         updated_since: datetime | None = None,
+        max_pages: int | None = None,
     ) -> list[Record]:
         """Fetch Shopify orders as platform records."""
 
@@ -42,9 +43,13 @@ def load_shopify_orders(
     warehouse_loader: WarehouseLoader,
     table_id: str = _DEFAULT_ORDERS_TABLE_ID,
     updated_since: datetime | None = None,
+    max_pages: int | None = None,
 ) -> IngestionJobResult:
     """Load Shopify order records into a warehouse table."""
-    records = shopify_client.get_order_records(updated_since=updated_since)
+    records = shopify_client.get_order_records(
+        updated_since=updated_since,
+        max_pages=max_pages,
+    )
 
     warehouse_result = warehouse_loader.load(
         table_id=table_id,

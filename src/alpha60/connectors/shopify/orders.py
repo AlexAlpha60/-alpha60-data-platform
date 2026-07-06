@@ -33,8 +33,10 @@ class OrdersResource:
     def get_orders(
         self,
         updated_since: datetime | None = None,
+        max_pages: int | None = None,
     ) -> list[dict[str, object]]:
         records: list[dict[str, object]] = []
+        pages_fetched = 0
 
         params: dict[str, str] = {
             "limit": "250",
@@ -46,11 +48,16 @@ class OrdersResource:
 
         while True:
             response = self._client.get("/orders.json", params=params)
-            data = response.json()
+            pages_fetched += 1
 
+            data = response.json()
             page_records = data.get("orders", [])
+
             if isinstance(page_records, list):
                 records.extend(page_records)
+
+            if max_pages is not None and pages_fetched >= max_pages:
+                break
 
             next_page_info = extract_next_page_info(response)
 
@@ -67,6 +74,7 @@ class OrdersResource:
     def get_order_records(
         self,
         updated_since: datetime | None = None,
+        max_pages: int | None = None,
     ) -> list[Record]:
         extracted_at = datetime.now(UTC)
 
@@ -78,6 +86,9 @@ class OrdersResource:
                 extracted_at=extracted_at,
                 payload=order,
             )
-            for order in self.get_orders(updated_since=updated_since)
+            for order in self.get_orders(
+                updated_since=updated_since,
+                max_pages=max_pages,
+            )
             if "id" in order
         ]

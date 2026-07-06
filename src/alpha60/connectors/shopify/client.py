@@ -62,16 +62,24 @@ class ShopifyClient:
     def get_orders(
         self,
         updated_since: datetime | None = None,
+        max_pages: int | None = None,
     ) -> list[dict[str, object]]:
         """Fetch orders from Shopify."""
-        return self.orders.get_orders(updated_since=updated_since)
+        return self.orders.get_orders(
+            updated_since=updated_since,
+            max_pages=max_pages,
+        )
 
     def get_order_records(
         self,
         updated_since: datetime | None = None,
+        max_pages: int | None = None,
     ) -> list[Record]:
         """Fetch Shopify orders as platform records."""
-        return self.orders.get_order_records(updated_since=updated_since)
+        return self.orders.get_order_records(
+            updated_since=updated_since,
+            max_pages=max_pages,
+        )
 
     def get_products(
         self,

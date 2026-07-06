@@ -14,13 +14,16 @@ class FakeShopifyClient:
     def __init__(self) -> None:
         """Create a fake Shopify client."""
         self.updated_since: datetime | None = None
+        self.max_pages: int | None = None
 
     def get_order_records(
         self,
         updated_since: datetime | None = None,
+        max_pages: int | None = None,
     ) -> list[Record]:
         """Return fake order records."""
         self.updated_since = updated_since
+        self.max_pages = max_pages
 
         return [
             Record(
@@ -77,6 +80,7 @@ def test_load_shopify_orders_loads_records_to_default_table() -> None:
     assert result.latest_cursor == datetime(2026, 7, 6, 13, 30, tzinfo=UTC)
 
     assert shopify_client.updated_since is None
+    assert shopify_client.max_pages is None
     assert warehouse_loader.table_id == "shopify_orders"
     assert warehouse_loader.records[0].record_id == "1001"
 
@@ -109,3 +113,18 @@ def test_load_shopify_orders_passes_updated_since_to_client() -> None:
 
     assert result.warehouse_result.status == WarehouseLoadStatus.SUCCESS
     assert shopify_client.updated_since == updated_since
+
+
+def test_load_shopify_orders_passes_max_pages_to_client() -> None:
+    """Shopify order ingestion can limit the number of fetched pages."""
+    shopify_client = FakeShopifyClient()
+    warehouse_loader = FakeWarehouseLoader()
+
+    result = load_shopify_orders(
+        shopify_client=shopify_client,
+        warehouse_loader=warehouse_loader,
+        max_pages=2,
+    )
+
+    assert result.warehouse_result.status == WarehouseLoadStatus.SUCCESS
+    assert shopify_client.max_pages == 2

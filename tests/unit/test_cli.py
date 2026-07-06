@@ -51,10 +51,35 @@ def test_cli_runs_shopify_orders_ingestion(capsys) -> None:
         exit_code = main(["ingest", "shopify-orders"])
 
     assert exit_code == 0
-    run_job.assert_called_once_with(settings=settings)
+    run_job.assert_called_once_with(settings=settings, max_pages=None)
 
     captured = capsys.readouterr()
     assert "Loaded 4 rows into shopify_orders with status success." in captured.out
+
+
+def test_cli_passes_shopify_orders_max_pages(capsys) -> None:
+    """The CLI passes max_pages to the Shopify orders ingestion job."""
+    load_result = WarehouseLoadResult(
+        table_id="shopify_orders",
+        status=WarehouseLoadStatus.SUCCESS,
+        rows_loaded=500,
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch("alpha60.cli.run_shopify_orders_ingestion") as run_job,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        run_job.return_value = load_result
+
+        exit_code = main(["ingest", "shopify-orders", "--max-pages", "2"])
+
+    assert exit_code == 0
+    run_job.assert_called_once_with(settings=settings, max_pages=2)
+
+    captured = capsys.readouterr()
+    assert "Loaded 500 rows into shopify_orders with status success." in captured.out
 
 
 def test_cli_runs_configuration_health_check(capsys) -> None:
