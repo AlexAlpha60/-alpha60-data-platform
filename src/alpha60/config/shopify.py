@@ -8,7 +8,6 @@ class ShopifySettings:
     """Configuration required to connect to Shopify."""
 
     shop_domain: str
-    access_token: str = ""
     client_id: str = ""
     client_secret: str = ""
     api_version: str = "2025-01"

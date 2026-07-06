@@ -32,7 +32,6 @@ def load_settings() -> Settings:
         log_level=os.getenv("ALPHA60_LOG_LEVEL", _DEFAULT_LOG_LEVEL),
         shopify=ShopifySettings(
             shop_domain=os.getenv("ALPHA60_SHOPIFY_SHOP_DOMAIN", ""),
-            access_token=os.getenv("ALPHA60_SHOPIFY_ACCESS_TOKEN", ""),
             client_id=os.getenv("ALPHA60_SHOPIFY_CLIENT_ID", ""),
             client_secret=os.getenv("ALPHA60_SHOPIFY_CLIENT_SECRET", ""),
             api_version=os.getenv(
