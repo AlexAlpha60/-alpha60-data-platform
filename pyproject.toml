@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "alpha60-data-platform"
 version = "0.1.0"
@@ -18,11 +22,15 @@ alpha60 = "alpha60.cli:main"
 
 [dependency-groups]
 dev = [
+    "hatchling",
     "mypy",
     "pre-commit",
     "pytest",
     "ruff",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/alpha60"]
 
 [tool.ruff]
 line-length = 100
