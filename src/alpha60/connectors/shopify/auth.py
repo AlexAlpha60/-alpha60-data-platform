@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 import logging
 
 from alpha60.core.http.client import HTTPClient
@@ -10,6 +11,7 @@ from alpha60.core.http.client import HTTPClient
 _LOGGER = logging.getLogger(__name__)
 
 _CLIENT_CREDENTIALS_GRANT = "client_credentials"
+_REFRESH_BUFFER = timedelta(minutes=5)
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,7 +20,11 @@ class ShopifyAccessToken:
 
     access_token: str
     scope: str
-    expires_in: int
+    expires_at: datetime
+
+    def is_valid(self, *, now: datetime) -> bool:
+        """Return whether the token is valid beyond the refresh buffer."""
+        return now + _REFRESH_BUFFER < self.expires_at
 
 
 class ShopifyAuthenticator:
@@ -40,13 +46,15 @@ class ShopifyAuthenticator:
         self._cached_token: ShopifyAccessToken | None = None
 
     def get_access_token(self) -> str:
-        """Return a cached access token or exchange credentials for a new one."""
-        if self._cached_token is None:
-            self._cached_token = self._exchange_access_token()
+        """Return a valid cached access token or exchange credentials for a new one."""
+        now = datetime.now(UTC)
+
+        if self._cached_token is None or not self._cached_token.is_valid(now=now):
+            self._cached_token = self._exchange_access_token(now=now)
 
         return self._cached_token.access_token
 
-    def _exchange_access_token(self) -> ShopifyAccessToken:
+    def _exchange_access_token(self, *, now: datetime) -> ShopifyAccessToken:
         """Exchange client credentials for a Shopify access token."""
         _LOGGER.info(
             "Exchanging Shopify client credentials for access token",
@@ -63,11 +71,12 @@ class ShopifyAuthenticator:
             },
         )
         payload = response.json()
+        expires_in = int(payload.get("expires_in", 0))
 
         token = ShopifyAccessToken(
             access_token=str(payload["access_token"]),
             scope=str(payload.get("scope", "")),
-            expires_in=int(payload.get("expires_in", 0)),
+            expires_at=now + timedelta(seconds=expires_in),
         )
 
         _LOGGER.info(
@@ -75,7 +84,7 @@ class ShopifyAuthenticator:
             extra={
                 "shop_domain": self.shop_domain,
                 "scope": token.scope,
-                "expires_in": token.expires_in,
+                "expires_at": token.expires_at.isoformat(),
             },
         )
 

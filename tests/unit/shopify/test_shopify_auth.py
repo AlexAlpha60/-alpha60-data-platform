@@ -43,7 +43,7 @@ def test_shopify_authenticator_exchanges_client_credentials_for_access_token() -
     http_client.close()
 
 
-def test_shopify_authenticator_caches_access_token_for_process_lifetime() -> None:
+def test_shopify_authenticator_caches_access_token_until_refresh_buffer() -> None:
     request_count = 0
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -70,5 +70,32 @@ def test_shopify_authenticator_caches_access_token_for_process_lifetime() -> Non
     assert authenticator.get_access_token() == "cached-token"
     assert authenticator.get_access_token() == "cached-token"
     assert request_count == 1
+
+    http_client.close()
+
+
+def test_shopify_authenticator_refreshes_token_within_five_minute_buffer() -> None:
+    tokens = iter(["first-token", "second-token"])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            status_code=200,
+            json={
+                "access_token": next(tokens),
+                "scope": "read_products",
+                "expires_in": 299,
+            },
+        )
+
+    http_client = HTTPClient(transport=httpx.MockTransport(handler))
+    authenticator = ShopifyAuthenticator(
+        shop_domain="alpha60-test.myshopify.com",
+        client_id="test-client-id",
+        client_secret="test-client-secret",
+        http_client=http_client,
+    )
+
+    assert authenticator.get_access_token() == "first-token"
+    assert authenticator.get_access_token() == "second-token"
 
     http_client.close()
