@@ -9,6 +9,7 @@ import httpx
 from alpha60.core.http.client import HTTPClient
 from alpha60.core.models.record import Record
 
+from .orders import OrdersResource
 from .products import ProductsResource
 
 
@@ -27,6 +28,7 @@ class ShopifyClient:
         self.access_token = access_token
         self.api_version = api_version
         self.http_client = http_client or HTTPClient()
+        self.orders = OrdersResource(self)
         self.products = ProductsResource(self)
 
     def build_url(self, path: str) -> str:
@@ -56,6 +58,20 @@ class ShopifyClient:
         """Verify Shopify credentials."""
         response = self.get("/shop.json")
         return response.status_code == 200
+
+    def get_orders(
+        self,
+        updated_since: datetime | None = None,
+    ) -> list[dict[str, object]]:
+        """Fetch orders from Shopify."""
+        return self.orders.get_orders(updated_since=updated_since)
+
+    def get_order_records(
+        self,
+        updated_since: datetime | None = None,
+    ) -> list[Record]:
+        """Fetch Shopify orders as platform records."""
+        return self.orders.get_order_records(updated_since=updated_since)
 
     def get_products(
         self,
