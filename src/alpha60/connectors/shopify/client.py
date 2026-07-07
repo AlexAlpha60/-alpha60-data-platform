@@ -9,6 +9,7 @@ import httpx
 from alpha60.core.http.client import HTTPClient
 from alpha60.core.models.record import Record
 
+from .customers import CustomersResource
 from .orders import OrdersResource
 from .products import ProductsResource
 
@@ -30,6 +31,7 @@ class ShopifyClient:
         self.http_client = http_client or HTTPClient()
         self.orders = OrdersResource(self)
         self.products = ProductsResource(self)
+        self.customers = CustomersResource(self)
 
     def build_url(self, path: str) -> str:
         """Build a Shopify Admin API URL."""
@@ -94,3 +96,25 @@ class ShopifyClient:
     ) -> list[Record]:
         """Fetch Shopify products as platform records."""
         return self.products.get_product_records(updated_since=updated_since)
+
+    def get_customers(
+        self,
+        updated_since: datetime | None = None,
+        max_pages: int | None = None,
+    ) -> list[dict[str, object]]:
+        """Fetch customers from Shopify."""
+        return self.customers.get_customers(
+            updated_since=updated_since,
+            max_pages=max_pages,
+        )
+
+    def get_customer_records(
+        self,
+        updated_since: datetime | None = None,
+        max_pages: int | None = None,
+    ) -> list[Record]:
+        """Fetch Shopify customers as platform records."""
+        return self.customers.get_customer_records(
+            updated_since=updated_since,
+            max_pages=max_pages,
+        )
