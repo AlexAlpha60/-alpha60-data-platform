@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Protocol
 
@@ -22,6 +23,33 @@ class ShopifyRequestClient(Protocol):
         params: dict[str, str] | None = None,
     ) -> httpx.Response:
         """Perform a Shopify GET request."""
+
+
+def _stringify_phone(value: object) -> str | None:
+    """Convert Shopify phone values to strings."""
+    if value is None:
+        return None
+
+    return str(value)
+
+
+def _normalise_customer_payload(customer: dict[str, object]) -> dict[str, object]:
+    """Normalise Shopify customer payload values before warehouse loading."""
+    normalised = deepcopy(customer)
+
+    normalised["phone"] = _stringify_phone(normalised.get("phone"))
+
+    default_address = normalised.get("default_address")
+    if isinstance(default_address, dict):
+        default_address["phone"] = _stringify_phone(default_address.get("phone"))
+
+    addresses = normalised.get("addresses")
+    if isinstance(addresses, list):
+        for address in addresses:
+            if isinstance(address, dict):
+                address["phone"] = _stringify_phone(address.get("phone"))
+
+    return normalised
 
 
 class CustomersResource:
@@ -55,7 +83,11 @@ class CustomersResource:
             page_records = data.get("customers", [])
 
             if isinstance(page_records, list):
-                records.extend(page_records)
+                records.extend(
+                    _normalise_customer_payload(customer)
+                    for customer in page_records
+                    if isinstance(customer, dict)
+                )
 
             if max_pages is not None and pages_fetched >= max_pages:
                 break

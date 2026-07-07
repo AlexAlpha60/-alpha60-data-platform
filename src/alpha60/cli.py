@@ -189,6 +189,10 @@ def _print_load_result(load_result) -> None:
         f"with status {load_result.status.value}."
     )
 
+    if load_result.error_message is not None:
+        print()
+        print("Error details:")
+        print(load_result.error_message)
 
 def _print_transformation_result(result) -> None:
     """Print a transformation result."""
