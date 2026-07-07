@@ -21,6 +21,9 @@ from alpha60.transformations.shopify_order_lines_runner import (
 from alpha60.transformations.shopify_orders_runner import (
     run_shopify_orders_staging_transformation,
 )
+from alpha60.transformations.shopify_products_runner import (
+    run_shopify_products_staging_transformation,
+)
 from alpha60.warehouse.types import WarehouseLoadStatus
 
 
@@ -87,6 +90,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Build the Shopify order lines staging table",
     )
     shopify_order_lines_transform_parser.add_argument(
+        "--staging-dataset",
+        default=None,
+        help="Override the configured BigQuery dataset for staging tables.",
+    )
+
+    shopify_products_transform_parser = transform_subparsers.add_parser(
+        "shopify-products",
+        help="Build the Shopify products staging table",
+    )
+    shopify_products_transform_parser.add_argument(
         "--staging-dataset",
         default=None,
         help="Override the configured BigQuery dataset for staging tables.",
@@ -226,6 +239,26 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         logger.info(
             "Shopify order lines staging transformation completed",
+            extra={
+                "target_table_id": transformation_result.target_table_id,
+                "status": transformation_result.status.value,
+                "error_message": transformation_result.error_message,
+            },
+        )
+
+        return 0 if transformation_result.status == TransformationStatus.SUCCESS else 1
+
+    if args.command == "transform" and args.transformation_job == "shopify-products":
+        settings = load_settings()
+        transformation_result = run_shopify_products_staging_transformation(
+            settings=settings,
+            staging_dataset_id=args.staging_dataset,
+        )
+
+        _print_transformation_result(transformation_result)
+
+        logger.info(
+            "Shopify products staging transformation completed",
             extra={
                 "target_table_id": transformation_result.target_table_id,
                 "status": transformation_result.status.value,
