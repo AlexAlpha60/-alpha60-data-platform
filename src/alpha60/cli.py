@@ -14,6 +14,10 @@ from alpha60.operations.health import (
     check_configuration,
     check_shopify,
 )
+from alpha60.transformations.result import TransformationStatus
+from alpha60.transformations.shopify_orders_runner import (
+    run_shopify_orders_staging_transformation,
+)
 from alpha60.warehouse.types import WarehouseLoadStatus
 
 
@@ -53,6 +57,26 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Maximum number of Shopify order pages to fetch.",
+    )
+
+    transform_parser = subparsers.add_parser(
+        "transform",
+        help="Run warehouse transformations",
+    )
+
+    transform_subparsers = transform_parser.add_subparsers(
+        dest="transformation_job",
+        required=True,
+    )
+
+    shopify_orders_transform_parser = transform_subparsers.add_parser(
+        "shopify-orders",
+        help="Build the Shopify orders staging table",
+    )
+    shopify_orders_transform_parser.add_argument(
+        "--staging-dataset",
+        default="stg",
+        help="BigQuery dataset for staging tables.",
     )
 
     test_parser = subparsers.add_parser(
@@ -100,6 +124,11 @@ def _print_load_result(load_result) -> None:
         f"{load_result.table_id} "
         f"with status {load_result.status.value}."
     )
+
+
+def _print_transformation_result(result) -> None:
+    """Print a transformation result."""
+    print(f"Transformed {result.target_table_id} with status {result.status.value}.")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -152,6 +181,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
         return 0 if load_result.status == WarehouseLoadStatus.SUCCESS else 1
+
+    if args.command == "transform" and args.transformation_job == "shopify-orders":
+        settings = load_settings()
+        transformation_result = run_shopify_orders_staging_transformation(
+            settings=settings,
+            staging_dataset_id=args.staging_dataset,
+        )
+
+        _print_transformation_result(transformation_result)
+
+        logger.info(
+            "Shopify orders staging transformation completed",
+            extra={
+                "target_table_id": transformation_result.target_table_id,
+                "status": transformation_result.status.value,
+                "error_message": transformation_result.error_message,
+            },
+        )
+
+        return 0 if transformation_result.status == TransformationStatus.SUCCESS else 1
 
     if args.command == "test" and args.health_check == "config":
         settings = load_settings()

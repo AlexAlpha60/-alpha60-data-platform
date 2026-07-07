@@ -189,3 +189,106 @@ def test_cli_runs_all_health_checks(capsys) -> None:
     captured = capsys.readouterr()
 
     assert captured.out.count("test: pass - OK") == 3
+
+
+def test_cli_runs_shopify_orders_staging_transformation(capsys) -> None:
+    """The CLI runs the Shopify orders staging transformation."""
+    from alpha60.transformations.result import (
+        TransformationResult,
+        TransformationStatus,
+    )
+
+    transformation_result = TransformationResult(
+        target_table_id="alpha60-data-platform.stg.shopify_orders",
+        status=TransformationStatus.SUCCESS,
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch(
+            "alpha60.cli.run_shopify_orders_staging_transformation"
+        ) as run_transformation,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        run_transformation.return_value = transformation_result
+
+        exit_code = main(["transform", "shopify-orders"])
+
+    assert exit_code == 0
+    run_transformation.assert_called_once_with(
+        settings=settings,
+        staging_dataset_id="stg",
+    )
+
+    captured = capsys.readouterr()
+    assert (
+        "Transformed alpha60-data-platform.stg.shopify_orders "
+        "with status success."
+    ) in captured.out
+
+
+def test_cli_passes_shopify_orders_staging_dataset(capsys) -> None:
+    """The CLI passes the staging dataset to the transformation runner."""
+    from alpha60.transformations.result import (
+        TransformationResult,
+        TransformationStatus,
+    )
+
+    transformation_result = TransformationResult(
+        target_table_id="alpha60-data-platform.alpha60_dev_staging.shopify_orders",
+        status=TransformationStatus.SUCCESS,
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch(
+            "alpha60.cli.run_shopify_orders_staging_transformation"
+        ) as run_transformation,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        run_transformation.return_value = transformation_result
+
+        exit_code = main(
+            [
+                "transform",
+                "shopify-orders",
+                "--staging-dataset",
+                "alpha60_dev_staging",
+            ]
+        )
+
+    assert exit_code == 0
+    run_transformation.assert_called_once_with(
+        settings=settings,
+        staging_dataset_id="alpha60_dev_staging",
+    )
+
+
+def test_cli_returns_failure_for_failed_transformation(capsys) -> None:
+    """The CLI returns a non-zero exit code for failed transformations."""
+    from alpha60.transformations.result import (
+        TransformationResult,
+        TransformationStatus,
+    )
+
+    transformation_result = TransformationResult(
+        target_table_id="alpha60-data-platform.stg.shopify_orders",
+        status=TransformationStatus.FAILED,
+        error_message="query failed",
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch(
+            "alpha60.cli.run_shopify_orders_staging_transformation"
+        ) as run_transformation,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        run_transformation.return_value = transformation_result
+
+        exit_code = main(["transform", "shopify-orders"])
+
+    assert exit_code == 1
