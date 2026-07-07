@@ -15,6 +15,9 @@ from alpha60.operations.health import (
     check_shopify,
 )
 from alpha60.transformations.result import TransformationStatus
+from alpha60.transformations.shopify_order_lines_runner import (
+    run_shopify_order_lines_staging_transformation,
+)
 from alpha60.transformations.shopify_orders_runner import (
     run_shopify_orders_staging_transformation,
 )
@@ -75,8 +78,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     shopify_orders_transform_parser.add_argument(
         "--staging-dataset",
-        default="stg",
-        help="BigQuery dataset for staging tables.",
+        default=None,
+        help="Override the configured BigQuery dataset for staging tables.",
+    )
+
+    shopify_order_lines_transform_parser = transform_subparsers.add_parser(
+        "shopify-order-lines",
+        help="Build the Shopify order lines staging table",
+    )
+    shopify_order_lines_transform_parser.add_argument(
+        "--staging-dataset",
+        default=None,
+        help="Override the configured BigQuery dataset for staging tables.",
     )
 
     test_parser = subparsers.add_parser(
@@ -202,6 +215,26 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         return 0 if transformation_result.status == TransformationStatus.SUCCESS else 1
 
+    if args.command == "transform" and args.transformation_job == "shopify-order-lines":
+        settings = load_settings()
+        transformation_result = run_shopify_order_lines_staging_transformation(
+            settings=settings,
+            staging_dataset_id=args.staging_dataset,
+        )
+
+        _print_transformation_result(transformation_result)
+
+        logger.info(
+            "Shopify order lines staging transformation completed",
+            extra={
+                "target_table_id": transformation_result.target_table_id,
+                "status": transformation_result.status.value,
+                "error_message": transformation_result.error_message,
+            },
+        )
+
+        return 0 if transformation_result.status == TransformationStatus.SUCCESS else 1
+
     if args.command == "test" and args.health_check == "config":
         settings = load_settings()
         health_result = check_configuration(settings=settings)
@@ -278,10 +311,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             },
         )
 
-        if all_passed:
-            return 0
-
-        return 1
+        return 0 if all_passed else 1
 
     parser.error("Unsupported command")
     return 2

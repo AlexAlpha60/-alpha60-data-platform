@@ -218,7 +218,7 @@ def test_cli_runs_shopify_orders_staging_transformation(capsys) -> None:
     assert exit_code == 0
     run_transformation.assert_called_once_with(
         settings=settings,
-        staging_dataset_id="stg",
+        staging_dataset_id=None,
     )
 
     captured = capsys.readouterr()
@@ -292,3 +292,78 @@ def test_cli_returns_failure_for_failed_transformation(capsys) -> None:
         exit_code = main(["transform", "shopify-orders"])
 
     assert exit_code == 1
+
+
+def test_cli_runs_shopify_order_lines_staging_transformation(capsys) -> None:
+    """The CLI runs the Shopify order lines staging transformation."""
+    from alpha60.transformations.result import (
+        TransformationResult,
+        TransformationStatus,
+    )
+
+    transformation_result = TransformationResult(
+        target_table_id="alpha60-data-platform.stg.shopify_order_lines",
+        status=TransformationStatus.SUCCESS,
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch(
+            "alpha60.cli.run_shopify_order_lines_staging_transformation"
+        ) as run_transformation,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        run_transformation.return_value = transformation_result
+
+        exit_code = main(["transform", "shopify-order-lines"])
+
+    assert exit_code == 0
+    run_transformation.assert_called_once_with(
+        settings=settings,
+        staging_dataset_id=None,
+    )
+
+    captured = capsys.readouterr()
+    assert (
+        "Transformed alpha60-data-platform.stg.shopify_order_lines "
+        "with status success."
+    ) in captured.out
+
+
+def test_cli_passes_shopify_order_lines_staging_dataset(capsys) -> None:
+    """The CLI passes a custom staging dataset for Shopify order lines."""
+    from alpha60.transformations.result import (
+        TransformationResult,
+        TransformationStatus,
+    )
+
+    transformation_result = TransformationResult(
+        target_table_id="alpha60-data-platform.custom_stg.shopify_order_lines",
+        status=TransformationStatus.SUCCESS,
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch(
+            "alpha60.cli.run_shopify_order_lines_staging_transformation"
+        ) as run_transformation,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        run_transformation.return_value = transformation_result
+
+        exit_code = main(
+            [
+                "transform",
+                "shopify-order-lines",
+                "--staging-dataset",
+                "custom_stg",
+            ]
+        )
+
+    assert exit_code == 0
+    run_transformation.assert_called_once_with(
+        settings=settings,
+        staging_dataset_id="custom_stg",
+    )
