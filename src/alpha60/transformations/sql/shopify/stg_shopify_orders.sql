@@ -10,6 +10,10 @@ SELECT
   SAFE_CAST(JSON_VALUE(TO_JSON(payload), '$.total_tax') AS NUMERIC) AS total_tax,
   SAFE_CAST(JSON_VALUE(TO_JSON(payload), '$.total_discounts') AS NUMERIC) AS total_discounts,
   SAFE_CAST(JSON_VALUE(TO_JSON(payload), '$.currency') AS STRING) AS currency,
+  REGEXP_EXTRACT(
+    JSON_VALUE(TO_JSON(payload), '$.tags'),
+    r'Location ([^,]+)'
+  ) AS sales_location_name,
   SAFE_CAST(JSON_VALUE(TO_JSON(payload), '$.created_at') AS TIMESTAMP) AS order_created_at,
   SAFE_CAST(JSON_VALUE(TO_JSON(payload), '$.updated_at') AS TIMESTAMP) AS order_updated_at,
   SAFE_CAST(JSON_VALUE(TO_JSON(payload), '$.cancelled_at') AS TIMESTAMP) AS order_cancelled_at,

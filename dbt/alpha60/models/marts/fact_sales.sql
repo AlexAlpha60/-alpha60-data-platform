@@ -6,6 +6,7 @@ SELECT
     ol.order_created_at,
 
     o.customer_email,
+  o.sales_location_name,
 
     ol.product_id,
     ol.variant_id,
