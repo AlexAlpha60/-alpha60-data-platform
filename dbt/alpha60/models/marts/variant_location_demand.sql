@@ -67,6 +67,10 @@ SELECT
     COALESCE(sales.units_sold_4_weeks, 0) AS units_sold_4_weeks,
     COALESCE(sales.units_sold_12_weeks, 0) AS units_sold_12_weeks,
 
+    COALESCE(style_demand.style_units_4_weeks, 0) AS style_units_sold_4_weeks,
+    COALESCE(style_demand.style_units_12_weeks, 0) AS style_units_sold_12_weeks,
+    COALESCE(style_demand.demand_score, 0) AS style_demand_score,
+
     sales.first_sale_at,
     sales.last_sale_at,
 
@@ -97,3 +101,7 @@ LEFT JOIN sales_by_variant_location AS sales
 
 LEFT JOIN warehouse_stock
     ON inventory.variant_id = warehouse_stock.variant_id
+
+LEFT JOIN `alpha60-data-platform.warehouse.style_location_demand` AS style_demand
+    ON inventory.product_id = style_demand.product_id
+   AND inventory.location_name = style_demand.location_name
