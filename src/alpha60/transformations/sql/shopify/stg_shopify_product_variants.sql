@@ -13,6 +13,7 @@ SELECT
   SAFE_CAST(JSON_VALUE(variant, '$.price') AS NUMERIC) AS price,
   SAFE_CAST(JSON_VALUE(variant, '$.compare_at_price') AS NUMERIC) AS compare_at_price,
   SAFE_CAST(JSON_VALUE(variant, '$.inventory_quantity') AS INT64) AS inventory_quantity,
+  SAFE_CAST(JSON_VALUE(variant, '$.inventory_item_id') AS INT64) AS inventory_item_id,
   JSON_VALUE(variant, '$.inventory_policy') AS inventory_policy,
   JSON_VALUE(variant, '$.inventory_management') AS inventory_management,
 
