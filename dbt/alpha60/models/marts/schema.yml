@@ -30,3 +30,23 @@ models:
         tests:
           - not_null
           - unique
+
+  - name: fact_inventory_snapshot
+    description: "Current Shopify inventory by variant and location."
+    columns:
+      - name: inventory_level_key
+        tests:
+          - not_null
+          - unique
+      - name: inventory_item_id
+        tests:
+          - not_null
+      - name: location_id
+        tests:
+          - not_null
+      - name: variant_id
+        tests:
+          - not_null
+      - name: available_quantity
+        tests:
+          - not_null
