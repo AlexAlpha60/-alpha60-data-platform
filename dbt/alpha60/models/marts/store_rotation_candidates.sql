@@ -73,6 +73,12 @@ candidates AS (
     JOIN senders AS sender
       ON receiver.variant_id = sender.variant_id
      AND receiver.location_id != sender.location_id
+
+    WHERE receiver.location_name != 'Oxford St'
+       OR (
+            sender.location_name = 'Newtown'
+            AND sender.available_quantity >= 2
+       )
 ),
 
 ranked_candidates AS (
@@ -81,7 +87,17 @@ ranked_candidates AS (
         ROW_NUMBER() OVER (
             PARTITION BY variant_id, send_to_location_id
             ORDER BY rotation_score DESC
-        ) AS candidate_rank
+        ) AS candidate_rank,
+
+        ROW_NUMBER() OVER (
+            PARTITION BY variant_id, send_from_location_id
+            ORDER BY
+                rotation_score DESC,
+                send_to_style_units_12_weeks DESC,
+                send_to_available_quantity ASC,
+                send_to_rotation_priority DESC,
+                send_to_location_name ASC
+        ) AS donor_rank
     FROM candidates
 )
 

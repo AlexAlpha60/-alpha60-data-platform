@@ -47,7 +47,10 @@ SELECT
             'Sparehouse',
             'Melbourne Outlet',
             'Spring1883',
-            'Smith St'
+            'Smith St',
+            'Paddington',
+            'Flinders Lane',
+            'Fitzroy'
         ) THEN FALSE
         ELSE TRUE
     END AS can_send_rotations,
@@ -58,6 +61,7 @@ SELECT
             'Wellington',
             'James St',
             'Smith St',
+            'Paddington',
             'Online / Warehouse',
             'Faulty Land',
             'Sparehouse',
@@ -73,7 +77,6 @@ SELECT
         WHEN shopify_locations.inventory_location_name = 'Smith St' THEN 90
         WHEN shopify_locations.inventory_location_name = 'Newtown' THEN 85
         WHEN shopify_locations.inventory_location_name = 'Oxford St' THEN 80
-        WHEN shopify_locations.inventory_location_name = 'Paddington' THEN 70
         ELSE 0
     END AS rotation_priority,
 
