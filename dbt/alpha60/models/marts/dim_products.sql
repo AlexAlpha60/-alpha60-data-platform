@@ -8,6 +8,10 @@ SELECT
     p.status,
     p.tags,
 
+    REGEXP_CONTAINS(LOWER(COALESCE(p.tags, '')), r'(^|,\s*)season_aw26(\s*,|$)') AS is_season_aw26,
+    REGEXP_CONTAINS(LOWER(COALESCE(p.tags, '')), r'(^|,\s*)aw26 rotations') AS is_aw26_rotation_excluded,
+    REGEXP_CONTAINS(LOWER(COALESCE(p.product_title, '')), r'\bsocks?\b') AS is_sock,
+
     p.product_created_at,
     p.product_updated_at,
     p.product_published_at,

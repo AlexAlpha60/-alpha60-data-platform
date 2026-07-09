@@ -46,7 +46,8 @@ SELECT
             'Faulty Land',
             'Sparehouse',
             'Melbourne Outlet',
-            'Spring1883'
+            'Spring1883',
+            'Smith St'
         ) THEN FALSE
         ELSE TRUE
     END AS can_send_rotations,
@@ -56,6 +57,7 @@ SELECT
             'Claremont',
             'Wellington',
             'James St',
+            'Smith St',
             'Online / Warehouse',
             'Faulty Land',
             'Sparehouse',
