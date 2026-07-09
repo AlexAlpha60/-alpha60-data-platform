@@ -40,4 +40,4 @@ SELECT
     modelled_at
 
 FROM `alpha60-data-platform.warehouse.store_rotation_candidates`
-WHERE candidate_rank = 1
+WHERE candidate_rank = 1 AND donor_rank = 1
