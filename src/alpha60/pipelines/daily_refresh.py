@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 
 from alpha60.config.settings import Settings
 from alpha60.core.logging import get_logger
@@ -12,6 +13,11 @@ from alpha60.jobs.shopify_inventory_levels_runner import (
 )
 from alpha60.jobs.shopify_orders_runner import run_shopify_orders_ingestion
 from alpha60.jobs.shopify_products_runner import run_shopify_products_ingestion
+from alpha60.pipelines.dbt_pipeline import (
+    DbtBuildResult,
+    DbtBuildStatus,
+    run_dbt_build,
+)
 from alpha60.transformations.pipeline import TransformationPipelineResult
 from alpha60.transformations.result import TransformationStatus
 from alpha60.transformations.shopify_pipeline import (
@@ -21,6 +27,8 @@ from alpha60.warehouse.types import WarehouseLoadResult, WarehouseLoadStatus
 
 
 logger = get_logger(__name__)
+
+DEFAULT_DBT_PROJECT_DIR = Path("dbt/alpha60")
 
 
 class DailyRefreshStatus(StrEnum):
@@ -32,13 +40,14 @@ class DailyRefreshStatus(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class DailyRefreshResult:
-    """Result of the daily ingestion and staging refresh."""
+    """Result of the complete daily data refresh."""
 
     status: DailyRefreshStatus
     products_result: WarehouseLoadResult | None = None
     orders_result: WarehouseLoadResult | None = None
     inventory_levels_result: WarehouseLoadResult | None = None
     transformation_result: TransformationPipelineResult | None = None
+    dbt_result: DbtBuildResult | None = None
     failed_stage: str | None = None
     error_message: str | None = None
 
@@ -66,8 +75,9 @@ def run_daily_refresh(
     *,
     settings: Settings,
     orders_max_pages: int | None = None,
+    dbt_project_dir: Path = DEFAULT_DBT_PROJECT_DIR,
 ) -> DailyRefreshResult:
-    """Run the daily Shopify refresh in dependency order."""
+    """Run the complete daily data refresh in dependency order."""
     logger.info("Daily refresh started")
 
     logger.info("Daily refresh stage started", extra={"stage": "shopify-products"})
@@ -190,6 +200,40 @@ def run_daily_refresh(
             "transformations_completed": len(transformation_result.results),
         },
     )
+
+    logger.info("Daily refresh stage started", extra={"stage": "dbt-build"})
+    dbt_result = run_dbt_build(project_dir=dbt_project_dir)
+
+    if dbt_result.status != DbtBuildStatus.SUCCESS:
+        error_message = dbt_result.stderr or dbt_result.stdout or "dbt build failed"
+
+        logger.error(
+            "Daily refresh stage failed",
+            extra={
+                "stage": "dbt-build",
+                "return_code": dbt_result.return_code,
+                "error_message": error_message,
+            },
+        )
+
+        return DailyRefreshResult(
+            status=DailyRefreshStatus.FAILED,
+            products_result=products_result,
+            orders_result=orders_result,
+            inventory_levels_result=inventory_levels_result,
+            transformation_result=transformation_result,
+            dbt_result=dbt_result,
+            failed_stage="dbt-build",
+            error_message=error_message,
+        )
+
+    logger.info(
+        "Daily refresh stage completed",
+        extra={
+            "stage": "dbt-build",
+            "return_code": dbt_result.return_code,
+        },
+    )
     logger.info("Daily refresh completed successfully")
 
     return DailyRefreshResult(
@@ -198,4 +242,5 @@ def run_daily_refresh(
         orders_result=orders_result,
         inventory_levels_result=inventory_levels_result,
         transformation_result=transformation_result,
+        dbt_result=dbt_result,
     )

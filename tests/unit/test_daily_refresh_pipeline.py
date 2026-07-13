@@ -9,12 +9,31 @@ from alpha60.pipelines.daily_refresh import (
     DailyRefreshStatus,
     run_daily_refresh,
 )
+from alpha60.pipelines.dbt_pipeline import (
+    DbtBuildResult,
+    DbtBuildStatus,
+)
 from alpha60.transformations.pipeline import TransformationPipelineResult
 from alpha60.transformations.result import (
     TransformationResult,
     TransformationStatus,
 )
 from alpha60.warehouse.types import WarehouseLoadResult, WarehouseLoadStatus
+
+
+@pytest.fixture(autouse=True)
+def successful_dbt_build() -> Iterator[Mock]:
+    """Provide a successful dbt build by default."""
+    with patch(
+        "alpha60.pipelines.daily_refresh.run_dbt_build",
+        return_value=DbtBuildResult(
+            status=DbtBuildStatus.SUCCESS,
+            return_code=0,
+            stdout="Completed successfully",
+            stderr="",
+        ),
+    ) as run_dbt:
+        yield run_dbt
 
 
 @pytest.fixture(autouse=True)
