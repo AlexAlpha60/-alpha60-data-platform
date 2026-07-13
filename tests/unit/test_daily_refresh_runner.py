@@ -1,12 +1,41 @@
 """Tests for the daily refresh orchestration runner."""
 
+from collections.abc import Iterator
 from unittest.mock import Mock, call, patch
+
+import pytest
 
 from alpha60.jobs.daily_refresh_runner import (
     DailyRefreshStatus,
     run_daily_refresh,
 )
+from alpha60.transformations.pipeline import TransformationPipelineResult
+from alpha60.transformations.result import (
+    TransformationResult,
+    TransformationStatus,
+)
 from alpha60.warehouse.types import WarehouseLoadResult, WarehouseLoadStatus
+
+
+@pytest.fixture(autouse=True)
+def successful_transformation_pipeline() -> Iterator[Mock]:
+    """Provide a successful Shopify transformation pipeline by default."""
+    pipeline = Mock()
+    pipeline.run.return_value = TransformationPipelineResult(
+        status=TransformationStatus.SUCCESS,
+        results=[
+            TransformationResult(
+                target_table_id="alpha60-data-platform.stg.shopify_products",
+                status=TransformationStatus.SUCCESS,
+            )
+        ],
+    )
+
+    with patch(
+        "alpha60.jobs.daily_refresh_runner.create_shopify_transformation_pipeline",
+        return_value=pipeline,
+    ):
+        yield pipeline
 
 
 def _successful_load(table_id: str, rows_loaded: int) -> WarehouseLoadResult:
@@ -219,3 +248,46 @@ def test_daily_refresh_passes_orders_max_pages() -> None:
     assert run_orders.call_args_list == [
         call(settings=settings, max_pages=2),
     ]
+
+
+def test_daily_refresh_reports_transformation_failure(
+    successful_transformation_pipeline: Mock,
+) -> None:
+    """The daily refresh fails when the Shopify staging pipeline fails."""
+    settings = Mock()
+
+    transformation_result = TransformationPipelineResult(
+        status=TransformationStatus.FAILED,
+        results=[
+            TransformationResult(
+                target_table_id="alpha60-data-platform.stg.shopify_orders",
+                status=TransformationStatus.FAILED,
+                error_message="Transformation query failed",
+            )
+        ],
+    )
+    successful_transformation_pipeline.run.return_value = transformation_result
+
+    with (
+        patch(
+            "alpha60.jobs.daily_refresh_runner.run_shopify_products_ingestion",
+            return_value=_successful_load("shopify_products", 3),
+        ),
+        patch(
+            "alpha60.jobs.daily_refresh_runner.run_shopify_orders_ingestion",
+            return_value=_successful_load("shopify_orders", 4),
+        ),
+        patch(
+            "alpha60.jobs.daily_refresh_runner.run_shopify_inventory_levels_ingestion",
+            return_value=_successful_load("shopify_inventory_levels", 5),
+        ),
+    ):
+        result = run_daily_refresh(settings=settings)
+
+    assert result.status == DailyRefreshStatus.FAILED
+    assert result.failed_stage == "shopify-transformations"
+    assert result.error_message == "Transformation query failed"
+    assert result.transformation_result == transformation_result
+    successful_transformation_pipeline.run.assert_called_once_with(
+        settings=settings
+    )
