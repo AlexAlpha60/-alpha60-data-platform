@@ -1,0 +1,13 @@
+alpha60:
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: alpha60-data-platform
+      dataset: warehouse
+      location: australia-southeast1
+      threads: 1
+      priority: interactive
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+  target: dev
