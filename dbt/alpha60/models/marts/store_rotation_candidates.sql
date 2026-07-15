@@ -108,10 +108,22 @@ candidates AS (
         )
     )
 
-    -- Newtown cannot supply Fitzroy or Flinders Lane.
+    -- Oxford St and Newtown operate as a closed transfer pair.
+    AND NOT (
+        sender.location_name = 'Oxford St'
+        AND receiver.location_name != 'Newtown'
+    )
+    AND NOT (
+        receiver.location_name = 'Oxford St'
+        AND sender.location_name != 'Newtown'
+    )
     AND NOT (
         sender.location_name = 'Newtown'
-        AND receiver.location_name IN ('Fitzroy', 'Flinders Lane')
+        AND receiver.location_name != 'Oxford St'
+    )
+    AND NOT (
+        receiver.location_name = 'Newtown'
+        AND sender.location_name != 'Oxford St'
     )
 
     -- Smith St may receive only Denim or CLASSICS, and never from Newtown.
