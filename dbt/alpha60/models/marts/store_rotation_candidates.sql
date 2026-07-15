@@ -73,9 +73,10 @@ candidates AS (
         1 AS recommended_transfer_quantity,
 
         CASE
-            WHEN sender.location_name IN ('Oxford St', 'Newtown') THEN 1
-            WHEN sender.location_name IN ('Wellington', 'Claremont', 'James St') THEN 2
-            WHEN sender.location_name IN ('Flinders Lane', 'Fitzroy') THEN 3
+            WHEN sender.location_name = 'Newtown' THEN 1
+            WHEN sender.location_name = 'Oxford St' THEN 2
+            WHEN sender.location_name IN ('Wellington', 'Claremont', 'James St') THEN 3
+            WHEN sender.location_name IN ('Flinders Lane', 'Fitzroy') THEN 4
             ELSE 99
         END AS donor_tier,
 
@@ -103,6 +104,7 @@ candidates AS (
         OR (
             sender.location_name = 'Newtown'
             AND sender.available_quantity >= 2
+            AND receiver.style_demand_score > sender.style_demand_score
         )
     )
 
