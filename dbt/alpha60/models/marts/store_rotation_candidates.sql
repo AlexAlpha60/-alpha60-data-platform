@@ -72,6 +72,13 @@ candidates AS (
 
         1 AS recommended_transfer_quantity,
 
+        CASE
+            WHEN sender.location_name IN ('Oxford St', 'Newtown') THEN 1
+            WHEN sender.location_name IN ('Wellington', 'Claremont', 'James St') THEN 2
+            WHEN sender.location_name IN ('Flinders Lane', 'Fitzroy') THEN 3
+            ELSE 99
+        END AS donor_tier,
+
         receiver.style_demand_score - sender.style_demand_score AS style_demand_gap,
 
         (
@@ -143,7 +150,11 @@ ranked_candidates AS (
         *,
         ROW_NUMBER() OVER (
             PARTITION BY variant_id, send_to_location_id
-            ORDER BY rotation_score DESC
+            ORDER BY
+                donor_tier ASC,
+                rotation_score DESC,
+                send_from_style_demand_score ASC,
+                send_from_location_name ASC
         ) AS candidate_rank,
 
         ROW_NUMBER() OVER (
