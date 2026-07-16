@@ -442,3 +442,122 @@ def test_cli_passes_shopify_products_staging_dataset(capsys) -> None:
         settings=settings,
         staging_dataset_id="custom_stg",
     )
+
+
+def test_cli_runs_daily_refresh(capsys) -> None:
+    """The CLI runs the daily refresh workflow."""
+    from alpha60.pipelines.daily_refresh import (
+        DailyRefreshResult,
+        DailyRefreshStatus,
+    )
+
+    products_result = WarehouseLoadResult(
+        table_id="shopify_products",
+        status=WarehouseLoadStatus.SUCCESS,
+        rows_loaded=3,
+    )
+    orders_result = WarehouseLoadResult(
+        table_id="shopify_orders",
+        status=WarehouseLoadStatus.SUCCESS,
+        rows_loaded=4,
+    )
+    inventory_result = WarehouseLoadResult(
+        table_id="shopify_inventory_levels",
+        status=WarehouseLoadStatus.SUCCESS,
+        rows_loaded=5,
+    )
+    refresh_result = DailyRefreshResult(
+        status=DailyRefreshStatus.SUCCESS,
+        products_result=products_result,
+        orders_result=orders_result,
+        inventory_levels_result=inventory_result,
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch("alpha60.cli.run_daily_refresh") as run_refresh,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        run_refresh.return_value = refresh_result
+
+        exit_code = main(["refresh", "daily"])
+
+    assert exit_code == 0
+    run_refresh.assert_called_once_with(
+        settings=settings,
+        orders_max_pages=None,
+    )
+
+    captured = capsys.readouterr()
+    assert (
+        "Daily refresh completed successfully: "
+        "products=3, orders=4, inventory_levels=5."
+    ) in captured.out
+
+
+def test_cli_passes_daily_refresh_orders_max_pages() -> None:
+    """The CLI passes an optional order page limit to the daily refresh."""
+    from alpha60.pipelines.daily_refresh import (
+        DailyRefreshResult,
+        DailyRefreshStatus,
+    )
+
+    refresh_result = DailyRefreshResult(
+        status=DailyRefreshStatus.SUCCESS,
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch("alpha60.cli.run_daily_refresh") as run_refresh,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        run_refresh.return_value = refresh_result
+
+        exit_code = main(
+            [
+                "refresh",
+                "daily",
+                "--orders-max-pages",
+                "2",
+            ]
+        )
+
+    assert exit_code == 0
+    run_refresh.assert_called_once_with(
+        settings=settings,
+        orders_max_pages=2,
+    )
+
+
+def test_cli_returns_failure_for_failed_daily_refresh(capsys) -> None:
+    """The CLI returns a non-zero exit code when the daily refresh fails."""
+    from alpha60.pipelines.daily_refresh import (
+        DailyRefreshResult,
+        DailyRefreshStatus,
+    )
+
+    refresh_result = DailyRefreshResult(
+        status=DailyRefreshStatus.FAILED,
+        failed_stage="shopify-orders",
+        error_message="Orders load failed",
+    )
+
+    with (
+        patch("alpha60.cli.load_settings") as load_settings,
+        patch("alpha60.cli.run_daily_refresh") as run_refresh,
+    ):
+        settings = object()
+        load_settings.return_value = settings
+        run_refresh.return_value = refresh_result
+
+        exit_code = main(["refresh", "daily"])
+
+    assert exit_code == 1
+
+    captured = capsys.readouterr()
+    assert (
+        "Daily refresh failed at shopify-orders: Orders load failed"
+        in captured.out
+    )

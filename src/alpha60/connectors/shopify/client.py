@@ -10,6 +10,8 @@ from alpha60.core.http.client import HTTPClient
 from alpha60.core.models.record import Record
 
 from .customers import CustomersResource
+from .locations import LocationsResource
+from .inventory_levels import InventoryLevelsResource
 from .orders import OrdersResource
 from .products import ProductsResource
 
@@ -32,6 +34,8 @@ class ShopifyClient:
         self.orders = OrdersResource(self)
         self.products = ProductsResource(self)
         self.customers = CustomersResource(self)
+        self.locations = LocationsResource(self)
+        self.inventory_levels = InventoryLevelsResource(self)
 
     def build_url(self, path: str) -> str:
         """Build a Shopify Admin API URL."""
@@ -118,3 +122,29 @@ class ShopifyClient:
             updated_since=updated_since,
             max_pages=max_pages,
         )
+
+    def get_locations(self) -> list[dict[str, object]]:
+        """Fetch locations from Shopify."""
+        return self.locations.get_locations()
+
+    def get_location_records(self) -> list[Record]:
+        """Fetch Shopify locations as platform records."""
+        return self.locations.get_location_records()
+    def get_inventory_levels(
+        self,
+        inventory_item_ids: list[int],
+    ) -> list[dict[str, object]]:
+        """Fetch inventory levels from Shopify."""
+        return self.inventory_levels.get_inventory_levels(
+            inventory_item_ids=inventory_item_ids,
+        )
+
+    def get_inventory_level_records(
+        self,
+        inventory_item_ids: list[int],
+    ) -> list[Record]:
+        """Fetch Shopify inventory levels as platform records."""
+        return self.inventory_levels.get_inventory_level_records(
+            inventory_item_ids=inventory_item_ids,
+        )
+

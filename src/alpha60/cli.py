@@ -6,6 +6,12 @@ import argparse
 from alpha60.config import load_settings
 from alpha60.core.logging import configure_logging, get_logger
 from alpha60.jobs.shopify_customers_runner import run_shopify_customers_ingestion
+from alpha60.pipelines.daily_refresh import (
+    DailyRefreshStatus,
+    run_daily_refresh,
+)
+from alpha60.jobs.shopify_inventory_levels_runner import run_shopify_inventory_levels_ingestion
+from alpha60.jobs.shopify_locations_runner import run_shopify_locations_ingestion
 from alpha60.jobs.shopify_orders_runner import run_shopify_orders_ingestion
 from alpha60.jobs.shopify_products_runner import run_shopify_products_ingestion
 from alpha60.operations.health import (
@@ -64,6 +70,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Load Shopify products into BigQuery",
     )
 
+    ingest_subparsers.add_parser(
+        "shopify-locations",
+        help="Load Shopify locations into BigQuery",
+    )
+
+    ingest_subparsers.add_parser(
+        "shopify-inventory-levels",
+        help="Load Shopify inventory levels into BigQuery",
+    )
+
     shopify_customers_parser = ingest_subparsers.add_parser(
         "shopify-customers",
         help="Load Shopify customers into BigQuery",
@@ -81,6 +97,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     shopify_orders_parser.add_argument(
         "--max-pages",
+        type=int,
+        default=None,
+        help="Maximum number of Shopify order pages to fetch.",
+    )
+
+    refresh_parser = subparsers.add_parser(
+        "refresh",
+        help="Run coordinated data refresh workflows",
+    )
+
+    refresh_subparsers = refresh_parser.add_subparsers(
+        dest="refresh_job",
+        required=True,
+    )
+
+    daily_refresh_parser = refresh_subparsers.add_parser(
+        "daily",
+        help="Refresh Shopify products, orders, and inventory levels",
+    )
+    daily_refresh_parser.add_argument(
+        "--orders-max-pages",
         type=int,
         default=None,
         help="Maximum number of Shopify order pages to fetch.",
@@ -225,6 +262,79 @@ def main(argv: Sequence[str] | None = None) -> int:
             "command": args.command,
         },
     )
+
+    if args.command == "refresh" and args.refresh_job == "daily":
+        settings = load_settings()
+        refresh_result = run_daily_refresh(
+            settings=settings,
+            orders_max_pages=args.orders_max_pages,
+        )
+
+        if refresh_result.status == DailyRefreshStatus.SUCCESS:
+            products_rows = (
+                refresh_result.products_result.rows_loaded
+                if refresh_result.products_result is not None
+                else 0
+            )
+            orders_rows = (
+                refresh_result.orders_result.rows_loaded
+                if refresh_result.orders_result is not None
+                else 0
+            )
+            inventory_rows = (
+                refresh_result.inventory_levels_result.rows_loaded
+                if refresh_result.inventory_levels_result is not None
+                else 0
+            )
+
+            print(
+                "Daily refresh completed successfully: "
+                f"products={products_rows}, "
+                f"orders={orders_rows}, "
+                f"inventory_levels={inventory_rows}."
+            )
+            return 0
+
+        print(
+            "Daily refresh failed at "
+            f"{refresh_result.failed_stage}: "
+            f"{refresh_result.error_message or 'Unknown error'}"
+        )
+        return 1
+
+    if args.command == "ingest" and args.ingestion_job == "shopify-inventory-levels":
+        settings = load_settings()
+        load_result = run_shopify_inventory_levels_ingestion(settings=settings)
+
+        _print_load_result(load_result)
+
+        logger.info(
+            "Shopify inventory levels ingestion completed",
+            extra={
+                "table_id": load_result.table_id,
+                "rows_loaded": load_result.rows_loaded,
+                "status": load_result.status.value,
+            },
+        )
+
+        return 0 if load_result.status == WarehouseLoadStatus.SUCCESS else 1
+
+    if args.command == "ingest" and args.ingestion_job == "shopify-locations":
+        settings = load_settings()
+        load_result = run_shopify_locations_ingestion(settings=settings)
+
+        _print_load_result(load_result)
+
+        logger.info(
+            "Shopify locations ingestion completed",
+            extra={
+                "table_id": load_result.table_id,
+                "rows_loaded": load_result.rows_loaded,
+                "status": load_result.status.value,
+            },
+        )
+
+        return 0 if load_result.status == WarehouseLoadStatus.SUCCESS else 1
 
     if args.command == "ingest" and args.ingestion_job == "shopify-customers":
         settings = load_settings()

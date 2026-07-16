@@ -38,5 +38,8 @@ def test_create_shopify_product_variants_staging_transformation_runs_sql() -> No
         "`alpha60-data-platform.stg.shopify_product_variants`"
     ) in sql
     assert "FROM `alpha60-data-platform.raw.shopify_products`" in sql
-    assert "JSON_QUERY_ARRAY(TO_JSON(raw_products.payload), '$.variants')" in sql
+    assert "JSON_QUERY_ARRAY(" in sql
+    assert "TO_JSON(raw_products.payload)" in sql
+    assert "'$.variants'" in sql
+    assert "PARTITION BY variant_id" in sql
     assert "SAFE_CAST(JSON_VALUE(variant, '$.id') AS INT64) AS variant_id" in sql
