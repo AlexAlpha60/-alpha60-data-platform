@@ -246,7 +246,15 @@ def _print_load_result(load_result) -> None:
 
 def _print_transformation_result(result) -> None:
     """Print a transformation result."""
-    print(f"Transformed {result.target_table_id} with status {result.status.value}.")
+    print(
+        f"Transformed {result.target_table_id} "
+        f"with status {result.status.value}."
+    )
+
+    if result.error_message is not None:
+        print()
+        print("Error details:")
+        print(result.error_message)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
