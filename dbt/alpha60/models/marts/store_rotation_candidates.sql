@@ -4,20 +4,7 @@ WITH base AS (
         locations.can_send_rotations,
         locations.can_receive_rotations,
         locations.rotation_priority,
-        products.is_classics,
-        UPPER(COALESCE(demand.product_type, '')) IN (
-            'BAG',
-            'LEATHER BAG',
-            'KNIT BAG',
-            'WOVEN BAG',
-            'SHOE',
-            'SCARF',
-            'HAT',
-            'HAIR ACCE',
-            'BELT',
-            'SUNNIES',
-            'JEWELLERY'
-        ) AS is_bag_or_accessory
+        products.is_classics
     FROM `alpha60-data-platform.warehouse.variant_location_demand` AS demand
     JOIN `alpha60-data-platform.warehouse.store_rotation_locations` AS locations
       ON demand.location_id = locations.location_id
@@ -33,10 +20,7 @@ receivers AS (
     FROM base
     WHERE can_receive_rotations = TRUE
       AND warehouse_available_quantity <= 0
-      AND (
-          (is_bag_or_accessory AND available_quantity = 0)
-          OR (NOT is_bag_or_accessory AND available_quantity < 2)
-      )
+      AND available_quantity < 2
 ),
 
 senders AS (
