@@ -11,3 +11,4 @@ build/
 *.egg-info/
 
 logs/
+dbt/alpha60/.user.yml
