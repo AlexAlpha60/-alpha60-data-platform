@@ -1,6 +1,6 @@
 WITH recommendations AS (
     SELECT *
-    FROM `alpha60-data-platform.warehouse.store_rotation_candidates`
+    FROM {{ ref('store_rotation_candidates') }}
     WHERE candidate_rank = 1 AND donor_rank = 1
 ),
 
@@ -26,7 +26,7 @@ location_stock AS (
         MAX(IF(location_name = 'Wellington', style_units_sold_12_weeks, NULL)) AS wellington_style_sales_12_weeks,
         MAX(IF(location_name = 'Paddington', style_units_sold_12_weeks, NULL)) AS paddington_style_sales_12_weeks
 
-    FROM `alpha60-data-platform.warehouse.variant_location_demand`
+    FROM {{ ref('variant_location_demand') }}
     GROUP BY variant_id
 )
 
