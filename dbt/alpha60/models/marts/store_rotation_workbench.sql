@@ -45,6 +45,50 @@ SELECT
     recommendations.send_to_location_name,
     recommendations.recommended_transfer_quantity,
 
+    CASE recommendations.send_from_location_name
+        WHEN 'Oxford St' THEN location_stock.oxford_st_stock
+        WHEN 'Newtown' THEN location_stock.newtown_stock
+        WHEN 'Fitzroy' THEN location_stock.fitzroy_stock
+        WHEN 'Flinders Lane' THEN location_stock.flinders_lane_stock
+        WHEN 'James St' THEN location_stock.james_st_stock
+        WHEN 'Claremont' THEN location_stock.claremont_stock
+        WHEN 'Wellington' THEN location_stock.wellington_stock
+        WHEN 'Paddington' THEN location_stock.paddington_stock
+    END AS send_from_available_quantity,
+
+    CASE recommendations.send_to_location_name
+        WHEN 'Oxford St' THEN location_stock.oxford_st_stock
+        WHEN 'Newtown' THEN location_stock.newtown_stock
+        WHEN 'Fitzroy' THEN location_stock.fitzroy_stock
+        WHEN 'Flinders Lane' THEN location_stock.flinders_lane_stock
+        WHEN 'James St' THEN location_stock.james_st_stock
+        WHEN 'Claremont' THEN location_stock.claremont_stock
+        WHEN 'Wellington' THEN location_stock.wellington_stock
+        WHEN 'Paddington' THEN location_stock.paddington_stock
+    END AS send_to_available_quantity,
+
+    CASE recommendations.send_from_location_name
+        WHEN 'Oxford St' THEN location_stock.oxford_st_style_sales_12_weeks
+        WHEN 'Newtown' THEN location_stock.newtown_style_sales_12_weeks
+        WHEN 'Fitzroy' THEN location_stock.fitzroy_style_sales_12_weeks
+        WHEN 'Flinders Lane' THEN location_stock.flinders_lane_style_sales_12_weeks
+        WHEN 'James St' THEN location_stock.james_st_style_sales_12_weeks
+        WHEN 'Claremont' THEN location_stock.claremont_style_sales_12_weeks
+        WHEN 'Wellington' THEN location_stock.wellington_style_sales_12_weeks
+        WHEN 'Paddington' THEN location_stock.paddington_style_sales_12_weeks
+    END AS sender_style_sales_12_weeks,
+
+    CASE recommendations.send_to_location_name
+        WHEN 'Oxford St' THEN location_stock.oxford_st_style_sales_12_weeks
+        WHEN 'Newtown' THEN location_stock.newtown_style_sales_12_weeks
+        WHEN 'Fitzroy' THEN location_stock.fitzroy_style_sales_12_weeks
+        WHEN 'Flinders Lane' THEN location_stock.flinders_lane_style_sales_12_weeks
+        WHEN 'James St' THEN location_stock.james_st_style_sales_12_weeks
+        WHEN 'Claremont' THEN location_stock.claremont_style_sales_12_weeks
+        WHEN 'Wellington' THEN location_stock.wellington_style_sales_12_weeks
+        WHEN 'Paddington' THEN location_stock.paddington_style_sales_12_weeks
+    END AS receiver_style_sales_12_weeks,
+
     location_stock.oxford_st_stock,
     location_stock.newtown_stock,
     location_stock.fitzroy_stock,
